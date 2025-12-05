@@ -124,47 +124,71 @@ Class ProductoController{
 		} //fin del método ListarProductos	
 
 		
-public function actualizarProducto(){
+public function actualizarProducto() {
 
-    // Leer JSON de la petición
-    $data = file_get_contents("php://input");
-    $data = json_decode($data, true);
+    // Capturar datos enviados por PUT
+    $input = json_decode(file_get_contents("php://input"), true);
 
-    if (is_null($data)) {
-        http_response_code(400);
-        echo json_encode(["message" => "JSON inválido o vacío"]);
-        exit;
-    }
-
-    // Validación
-    $this->misDatos->enviarDatos($data);
-    $this->misDatos->setRequiredFields(['id', 'codigo', 'producto', 'precio', 'cantidad']);
-    $this->misDatos->validate();
-
-    if ($this->misDatos->getError()) {
+    if (!isset($input["id"])) {
         http_response_code(400);
         echo json_encode([
-            "message" => "Los datos vienen con errores",
-            "errores" => $this->misDatos->getErrorArray()
+            "success" => false,
+            "message" => "Falta el parámetro ID"
         ]);
-        exit;
+        return;
     }
 
-    // Pasar datos al modelo
-    $this->myProducto->DatosRequeridos($data);
+    // Crear objeto del modelo (CORRECCIÓN: usar $this->db, NO $this->pdo)
+    $obj = new ObjProductos($this->db);
 
-    // Si idp es PÚBLICO, asignas así:
-    $this->myProducto->idp = $data["id"];
+    // Enviar ID al modelo
+    $obj->idp = $input["id"];
 
-    // Ejecutar el UPDATE
-    if ($this->myProducto->actualizarProducto()) {
+    // Enviar campos al modelo
+    $obj->DatosRequeridos($input);
+
+    // Ejecutar actualización
+    $resultado = $obj->actualizarProducto();
+
+    // -------------------------------
+    //     MANEJO DE RESPUESTAS
+    // -------------------------------
+
+    if ($resultado === "ERROR_ID_NO_EXISTE") {
+        http_response_code(404);
+        echo json_encode([
+            "success" => false,
+            "message" => "El ID no existe en la base de datos"
+        ]);
+        return;
+    }
+
+    if ($resultado === "ERROR_CODIGO_DUPLICADO") {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "message" => "El código ya existe, no se puede actualizar"
+        ]);
+        return;
+    }
+
+    if ($resultado === true) {
         http_response_code(200);
-        echo json_encode(["message" => "Producto actualizado exitosamente"]);
-    } else {
-        http_response_code(500);
-        echo json_encode(["message" => "No se pudo actualizar el producto"]);
+        echo json_encode([
+            "success" => true,
+            "message" => "Producto actualizado correctamente"
+        ]);
+        return;
     }
+
+    // Error genérico
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "No se pudo actualizar el producto"
+    ]);
 }
+
 
 
 

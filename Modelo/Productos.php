@@ -69,27 +69,29 @@ require_once "Modelo/SanitizarEntrada.php";
 
 	public function actualizarProducto(){
 
+    // Validar que el ID exista antes de actualizar
+    if (!$this->pdo->existeID("productos", $this->idp)) {
+        return "ERROR_ID_NO_EXISTE";   // <-- Mensaje claro para tu controlador
+    }
 
-			$dataActualizar = array(
-			"codigo" => "$this->Codigo",
-			"producto" => "$this->Producto",
-			"precio" => $this->Precio,
-         "cantidad" =>$this->Cantidad);
+    $dataActualizar = array(
+        "codigo" => "$this->Codigo",
+        "producto" => "$this->Producto",
+        "precio" => $this->Precio,
+        "cantidad" => $this->Cantidad
+    );
 
-   		$condicion = array(
-			"id" => $this->idp); //$this->idp
+    $condicion = array(
+        "id" => $this->idp
+    );
 
-
-
-    // Si se actualizó correctamente, return TRUE
     if ($this->pdo->updateSeguro("productos", $dataActualizar, $condicion)) {
         return true;
     }
 
-    // Si falló, return FALSE
     return false;
-   	
-	}//fin de actualizarProductos
+}
+//fin de actualizarProductos
 
 } //fin ValidacionLogin
 
